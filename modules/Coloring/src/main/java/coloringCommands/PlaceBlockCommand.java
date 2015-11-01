@@ -189,8 +189,7 @@ public class PlaceBlockCommand extends BaseComponentSystem {
 				
 			}
 		}
-		return "Class doesn't exist";
-		
+		return "Class doesn't exist";		
 	}
 	
 	@Command(shortDescription = "give Color to a Build to some percentage and left the rest of another color")

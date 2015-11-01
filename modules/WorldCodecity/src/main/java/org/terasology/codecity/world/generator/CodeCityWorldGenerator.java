@@ -53,8 +53,7 @@ public class CodeCityWorldGenerator extends BaseFacetedWorldGenerator {
     }
 
     private void storeCodeRepresentation(CodeRepresentation code) {
-        JEditExporter.export(code);
-        
+        JEditExporter.export(code);        
     }
 
     @Override
