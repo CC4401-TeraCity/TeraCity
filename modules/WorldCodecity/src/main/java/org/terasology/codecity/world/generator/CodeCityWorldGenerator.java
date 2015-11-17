@@ -7,6 +7,7 @@ import java.util.List;
 import org.terasology.codecity.world.loader.CodeCityDefaultLoader;
 import org.terasology.codecity.world.loader.CodeCityLoader;
 import org.terasology.codecity.world.loader.CodeCityLoaderManager;
+import org.terasology.codecity.world.loader.DirectorySingleton;
 import org.terasology.codecity.world.map.CodeMap;
 import org.terasology.codecity.world.map.CodeMapFactory;
 import org.terasology.codecity.world.map.DrawableCode;
@@ -35,12 +36,20 @@ public class CodeCityWorldGenerator extends BaseFacetedWorldGenerator {
     public void initialize() {
         
         //Retorna en loader por fichero  en caso de que este exista, si no, el por socket.
-    	String path = "C:"+File.separator+"DCC"+File.separator+"Primavera15"+File.separator+"Ingenieria"+File.separator+"TeraCity"+File.separator+"modules"+File.separator+"GitHub";
-        //CodeCityLoader loader = CodeCityLoaderManager.getLoader(path);
+    	//String path = "C:"+File.separator+"DCC"+File.separator+"Primavera15"+File.separator+"Ingenieria"+File.separator+"TeraCity"+File.separator+"modules"+File.separator+"GitHub";
+        String path = DirectorySingleton.getInstance("").getPath();
+        CodeCityLoader loader;
+        if(path != ""){
+        	loader = new CodeCityProjectLoader(path);
+        }
+        else{
+        	loader = new CodeCityDefaultLoader();
+        }
+    	//CodeCityLoader loader = CodeCityLoaderManager.getLoader(path);
         
-    	CodeCityLoader loader = new CodeCityProjectLoader(path);
+    	
 
-        //CodeCityLoader loader = new CodeCityDefaultLoader();
+        //
 
         //CodeCityLoader loader = new CodeCitySocketLoader(25778);
         
