@@ -35,7 +35,8 @@ public class CodeCityWorldGenerator extends BaseFacetedWorldGenerator {
     public void initialize() {
         
         //Retorna en loader por fichero  en caso de que este exista, si no, el por socket.
-    	String path = "C:"+File.separator+"DCC"+File.separator+"Primavera15"+File.separator+"Ingenieria"+File.separator+"TeraCity"+File.separator+"modules"+File.separator+"GitHub";
+    	//String path = "C:"+File.separator+"DCC"+File.separator+"Primavera15"+File.separator+"Ingenieria"+File.separator+"TeraCity"+File.separator+"modules"+File.separator+"GitHub";
+    	String path = "C:\\Users\\Ignacio\\Documents\\CC4401\\TeraCity\\modules";
         //CodeCityLoader loader = CodeCityLoaderManager.getLoader(path);
         
     	//CodeCityLoader loader = new CodeCityProjectLoader(path);

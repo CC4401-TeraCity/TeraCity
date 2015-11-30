@@ -30,8 +30,9 @@ import org.terasology.registry.In;
 import org.terasology.utilities.random.FastRandom;
 import org.terasology.utilities.random.Random;
 
-/*
- * Class that handle the sounds of the game, acoording to the events received.
+/**
+ * @author Immortius
+ * @author Florian
  */
 @RegisterSystem(RegisterMode.ALWAYS)
 public class PlaySoundAction extends BaseComponentSystem {
@@ -44,11 +45,6 @@ public class PlaySoundAction extends BaseComponentSystem {
     @In
     private LocalPlayer localPlayer;
 
-    /**
-     * @param event An instance of the ActivationPredicted event
-     * @param entity An instance of EntityRef
-     * Deal with the predicted activation events and play a sound.
-     */
     @ReceiveEvent(components = {PlaySoundActionComponent.class})
     public void onActivationPredicted(ActivationPredicted event, EntityRef entity) {
         PlaySoundActionComponent playSound = entity.getComponent(PlaySoundActionComponent.class);
@@ -70,11 +66,6 @@ public class PlaySoundAction extends BaseComponentSystem {
         }
     }
 
-    /**
-     * @param event An instance of the ActivateEvent event
-     * @param entity An instance of EntityRef
-     * Deal with the real activation event (No predicted) and play a sound.
-     */
     @ReceiveEvent(components = {PlaySoundActionComponent.class})
     public void onActivate(ActivateEvent event, EntityRef entity) {
         if (event.getInstigator().equals(localPlayer.getCharacterEntity())) {
@@ -82,18 +73,7 @@ public class PlaySoundAction extends BaseComponentSystem {
         }
         PlaySoundActionComponent playSound = entity.getComponent(PlaySoundActionComponent.class);
         StaticSound sound = random.nextItem(playSound.sounds);
-        verifyAndPlaySound(event, playSound, sound);
-    }
-
-	/**
-	 * @param event ActivateEvent from the onActivate method
-	 * @param playSound ActionComponent for playing a sound
-	 * @param sound StaticSound instance for a sound
-	 * Helper method for the activation of a sound. Check for the current position and play a sound according to it.
-	 */
-	private void verifyAndPlaySound(ActivateEvent event,
-			PlaySoundActionComponent playSound, StaticSound sound) {
-		if (sound != null) {
+        if (sound != null) {
             Vector3f pos = null;
             switch (playSound.relativeTo) {
                 case Target:
@@ -108,5 +88,5 @@ public class PlaySoundAction extends BaseComponentSystem {
             }
             audioManager.playSound(sound, pos, playSound.volume, AudioManager.PRIORITY_NORMAL);
         }
-	}
+    }
 }

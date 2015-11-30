@@ -92,16 +92,16 @@ public class HierarchicalAISystem extends BaseComponentSystem implements
         long lastAttack = 0;
 
         // skip update if set to skip them
-        if (!ai.needsUpdate(tempTime)) {
-        	ai.setLastProgressedUpdated(CoreRegistry.get(Time.class)
-                    .getGameTimeInMs());
+        if (tempTime - ai.lastProgressedUpdateAt < ai.updateFrequency) {
+            ai.lastProgressedUpdateAt = CoreRegistry.get(Time.class)
+                    .getGameTimeInMs();
             return;
         }
 
-        long directionChangeTime = ai.getMoveUpdateTime();
-        long moveChangeTime = ai.getMoveUpdateTime();
-        long idleChangeTime = ai.getIdlingUpdateTime();
-        long dangerChangeTime = ai.getDangerUpdateTime();
+        long directionChangeTime = ai.moveUpdateTime;
+        long moveChangeTime = ai.moveUpdateTime;
+        long idleChangeTime = ai.idlingUpdateTime;
+        long dangerChangeTime = ai.dangerUpdateTime;
 
         // get movement
         Vector3f drive = new Vector3f();
@@ -115,8 +115,8 @@ public class HierarchicalAISystem extends BaseComponentSystem implements
             dist.sub(localPlayer.getPosition());
             double distanceToPlayer = dist.lengthSquared();
 
-            ai.setSafe();
-            if (ai.shouldDieForDistance(distanceToPlayer)) {
+            ai.inDanger = false;
+            if (ai.dieIfPlayerFar && distanceToPlayer > ai.dieDistance) {
                 entity.destroy();
             }
 
@@ -124,58 +124,67 @@ public class HierarchicalAISystem extends BaseComponentSystem implements
 
             // if our AI is aggressive or hunter go and hunt player else run away
             // if wild
-            if (ai.willAtack(distanceToPlayer, tempTime, lastAttack)) {
-                localPlayer.getCharacterEntity().send(
-                		new DoDamageEvent(ai.getDamage(), EngineDamageTypes.PHYSICAL.get(), entity));
-                lastAttack = CoreRegistry.get(Time.class).getGameTimeInMs();
+            if (ai.aggressive) {
+                // TODO fix this to proper attacking
+                if (distanceToPlayer <= ai.attackDistance) {
+                    if (tempTime - lastAttack > ai.damageFrequency) {
+                        localPlayer.getCharacterEntity().send(
+                                new DoDamageEvent(ai.damage, EngineDamageTypes.PHYSICAL.get(), entity));
+                        lastAttack = CoreRegistry.get(Time.class).getGameTimeInMs();
+                    }
+                }
             }
 
             //update
-            if (ai.shouldHurt(tempTime, dangerChangeTime)) {
-                dangerChangeTime = ai.getNewDangerChangeTime(random); 
-                float forgiving = ai.forgiving();
-                if (ai.sensePlayer(distanceToPlayer)) {
-            		// Head to player
-                    Vector3f tempTarget = localPlayer.getPosition();
-                    if (forgiving != 0) {
-                        ai.getMovementTarget().set(new Vector3f(
-                                tempTarget.x + random.nextFloat(-forgiving, forgiving),
-                                tempTarget.y + random.nextFloat(-forgiving, forgiving),
-                                tempTarget.z + random.nextFloat(-forgiving, forgiving)
-                        ));
-                    } else {
-                        ai.getMovementTarget().set(tempTarget);
-                    }
-                    ai.setInDanger();
-                    entity.saveComponent(ai);
-
-                    // System.out.print("\nhunting palyer\n");
-                }
-                
-                // run opposite direction
-                if (ai.isInPanic(distanceToPlayer)) {
+            if (tempTime - ai.lastChangeOfDangerAt > dangerChangeTime) {
+                dangerChangeTime = (long) (ai.dangerUpdateTime * random.nextDouble() * ai.hectic);
+                if (ai.hunter) {
+                    if (distanceToPlayer > ai.playerdistance
+                            && distanceToPlayer < ai.playerSense) {
+                        // Head to player
                         Vector3f tempTarget = localPlayer.getPosition();
-                        if (forgiving != 0) {
-                            ai.getMovementTarget().set(new Vector3f(
-                                    -tempTarget.x + random.nextFloat(-forgiving, forgiving),
-                                    -tempTarget.y + random.nextFloat(-forgiving, forgiving),
-                                    -tempTarget.z + random.nextFloat(-forgiving, forgiving)
+                        if (ai.forgiving != 0) {
+                            ai.movementTarget.set(new Vector3f(
+                                    tempTarget.x + random.nextFloat(-ai.forgiving, ai.forgiving),
+                                    tempTarget.y + random.nextFloat(-ai.forgiving, ai.forgiving),
+                                    tempTarget.z + random.nextFloat(-ai.forgiving, ai.forgiving)
                             ));
                         } else {
-                            ai.getMovementTarget()
+                            ai.movementTarget.set(tempTarget);
+                        }
+                        ai.inDanger = true;
+                        entity.saveComponent(ai);
+
+                        // System.out.print("\nhunting palyer\n");
+                    }
+                }
+                // run opposite direction
+                if (ai.wild) {
+                    if (distanceToPlayer > ai.panicDistance
+                            && distanceToPlayer < ai.runDistance) {
+                        Vector3f tempTarget = localPlayer.getPosition();
+                        if (ai.forgiving != 0) {
+                            ai.movementTarget.set(new Vector3f(
+                                    -tempTarget.x + random.nextFloat(-ai.forgiving, ai.forgiving),
+                                    -tempTarget.y + random.nextFloat(-ai.forgiving, ai.forgiving),
+                                    -tempTarget.z + random.nextFloat(-ai.forgiving, ai.forgiving)
+                            ));
+                        } else {
+                            ai.movementTarget
                                     .set(new Vector3f(tempTarget.x * -1,
                                             tempTarget.y * -1, tempTarget.z
                                             * -1));
                         }
                         entity.saveComponent(ai);
-                        ai.setInDanger();
-                    
+                        ai.inDanger = true;
+                    }
                 }
-                ai.setLastChangeOfDanger(CoreRegistry.get(Time.class).getGameTimeInMs());
+                ai.lastChangeOfDangerAt = CoreRegistry.get(Time.class)
+                        .getGameTimeInMs();
             }
         }
 
-        if (!ai.isInDanger()) {
+        if (!ai.inDanger) {
 
             //----------------eat----------
             // if anything edible is in front
@@ -188,56 +197,56 @@ public class HierarchicalAISystem extends BaseComponentSystem implements
             // what AI does when nothing better to do
             if (idling) {
                 // time to stop idling
-                if (ai.shouldIdle(tempTime, idleChangeTime)) {
-                    idleChangeTime = ai.getNewIdilingChangeTime(random);
+                if (tempTime - ai.lastChangeOfidlingtAt > idleChangeTime) {
+                    idleChangeTime = (long) (ai.idlingUpdateTime * random.nextDouble() * ai.hectic);
                     idling = false;
                     // mark idling state changed
-                    ai.setLastChangeOfIdiling(CoreRegistry.get(Time.class)
-                            .getGameTimeInMs());
+                    ai.lastChangeOfidlingtAt = CoreRegistry.get(Time.class)
+                            .getGameTimeInMs();
                 }
                 entity.saveComponent(location);
-                ai.setLastProgressedUpdated(CoreRegistry.get(Time.class)
-                        .getGameTimeInMs());
+                ai.lastProgressedUpdateAt = CoreRegistry.get(Time.class)
+                        .getGameTimeInMs();
                 return;
 
             }
 
             // check if it is time to idle again
-            if (ai.shouldMove(tempTime, moveChangeTime)) {
+            if (tempTime - ai.lastChangeOfMovementAt > moveChangeTime) {
                 // update time
-                moveChangeTime = ai.getNewMoveChangeTime(random);
+                moveChangeTime = (long) (ai.moveUpdateTime * random.nextDouble() * ai.hectic);
                 idling = true;
                 entity.saveComponent(location);
 
                 // mark start idling
-                ai.setLastChangeOfMovement(CoreRegistry.get(Time.class)
-                        .getGameTimeInMs());
-                ai.setLastProgressedUpdated(CoreRegistry.get(Time.class)
-                        .getGameTimeInMs());
+                ai.lastChangeOfMovementAt = CoreRegistry.get(Time.class)
+                        .getGameTimeInMs();
+                ai.lastProgressedUpdateAt = CoreRegistry.get(Time.class)
+                        .getGameTimeInMs();
                 return;
             }
 
             // Random walk
             // check if time to change direction
-            if (ai.shouldChangeDirection(tempTime, directionChangeTime)) {
-                directionChangeTime = ai.getNewDirectionChangeTime(random);
+            if (tempTime - ai.lastChangeOfDirectionAt > directionChangeTime) {
+                directionChangeTime = (long) (ai.moveUpdateTime * random.nextDouble() * ai.straightLined);
                 // if ai flies
-                if (ai.isFlying()) {
+                if (ai.flying) {
                     float targetY = 0;
                     do {
                         targetY = worldPos.y + random.nextFloat(-100.0f, 100.0f);
-                    } while (targetY > ai.getMaxAltitude());
-                    ai.getMovementTarget().set(
+                    } while (targetY > ai.maxAltitude);
+                    ai.movementTarget.set(
                             worldPos.x + random.nextFloat(-500.0f, 500.0f),
                             targetY,
                             worldPos.z + random.nextFloat(-500.0f, 500.0f));
                 } else {
-                    ai.getMovementTarget().set(
+                    ai.movementTarget.set(
                             worldPos.x + random.nextFloat(-500.0f, 500.0f),
                             worldPos.y,
                             worldPos.z + random.nextFloat(-500.0f, 500.0f));
                 }
-                ai.setLastChangeOfDirection(time.getGameTimeInMs());
+                ai.lastChangeOfDirectionAt = time.getGameTimeInMs();
                 entity.saveComponent(ai);
                 // System.out.print("direction changed\n");
 
@@ -245,7 +254,7 @@ public class HierarchicalAISystem extends BaseComponentSystem implements
         }
 
         Vector3f targetDirection = new Vector3f();
-        targetDirection.sub(ai.getMovementTarget(), worldPos);
+        targetDirection.sub(ai.movementTarget, worldPos);
         targetDirection.normalize();
         drive.set(targetDirection);
 
@@ -255,8 +264,7 @@ public class HierarchicalAISystem extends BaseComponentSystem implements
         // System.out.print("\Destination set: " + targetDirection.x + ":" +targetDirection.z + "\n");
         // System.out.print("\nI am: " + worldPos.x + ":" + worldPos.z + "\n");
 
-        ai.setLastProgressedUpdated(CoreRegistry.get(Time.class)
-                .getGameTimeInMs());
+        ai.lastProgressedUpdateAt = CoreRegistry.get(Time.class).getGameTimeInMs();
     }
 
     private boolean foodInFront() {

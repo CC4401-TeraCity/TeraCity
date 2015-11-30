@@ -31,7 +31,6 @@ public final class BlockComponent implements Component {
     Block block;
 
     public BlockComponent() {
-        
     }
 
     public BlockComponent(Block block, Vector3i pos) {

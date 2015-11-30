@@ -16,10 +16,8 @@
 package org.terasology.monitoring.gui;
 
 import com.google.common.base.Preconditions;
-
 import gnu.trove.map.TObjectDoubleMap;
 import gnu.trove.procedure.TObjectDoubleProcedure;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.monitoring.PerformanceMonitor;
@@ -27,7 +25,6 @@ import org.terasology.monitoring.ThreadActivity;
 import org.terasology.monitoring.ThreadMonitor;
 
 import javax.swing.*;
-
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -241,46 +238,37 @@ public class PerformanceMonitorPanel extends JPanel {
                 for (final Entry entry : list) {
                     entry.active = false;
                 }
-                setMeans(means);
-                setSpikes(spikes);
-                
+                means.forEachEntry(new TObjectDoubleProcedure<String>() {
+                    @Override
+                    public boolean execute(String key, double value) {
+                        Entry entry = map.get(key);
+                        if (entry == null) {
+                            entry = new Entry(key);
+                            list.add(entry);
+                            map.put(key, entry);
+                            invokeIntervalAdded(list.size() - 1, list.size() - 1);
+                        }
+                        entry.active = true;
+                        entry.mean = value;
+                        return true;
+                    }
+                });
+                spikes.forEachEntry(new TObjectDoubleProcedure<String>() {
+                    @Override
+                    public boolean execute(String key, double value) {
+                        Entry entry = map.get(key);
+                        if (entry != null) {
+                            entry.spike = value;
+                        }
+                        return true;
+                    }
+                });
                 Collections.sort(list);
                 invokeContentsChanged(0, list.size() - 1);
             }
         }
 
-        private void setSpikes(TObjectDoubleMap<String> spikes) {
-        	spikes.forEachEntry(new TObjectDoubleProcedure<String>() {
-                @Override
-                public boolean execute(String key, double value) {
-                    Entry entry = map.get(key);
-                    if (entry != null) {
-                        entry.spike = value;
-                    }
-                    return true;
-                }
-            });
-		}
-
-		private void setMeans(TObjectDoubleMap<String> means) {
-        	means.forEachEntry(new TObjectDoubleProcedure<String>() {
-                @Override
-                public boolean execute(String key, double value) {
-                    Entry entry = map.get(key);
-                    if (entry == null) {
-                        entry = new Entry(key);
-                        list.add(entry);
-                        map.put(key, entry);
-                        invokeIntervalAdded(list.size() - 1, list.size() - 1);
-                    }
-                    entry.active = true;
-                    entry.mean = value;
-                    return true;
-                }
-            });
-		}
-
-		@Override
+        @Override
         public int getSize() {
             return list.size();
         }

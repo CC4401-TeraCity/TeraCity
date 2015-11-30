@@ -16,44 +16,25 @@
 
 package org.terasology.logic.characters;
 
-import org.terasology.entitySystem.entity.EntityRef;
-import org.terasology.logic.characters.events.FootstepEvent;
-import org.terasology.logic.characters.events.SwimStrokeEvent;
-import org.terasology.world.block.Block;
-
 /**
  * @author Immortius
  */
 public enum MovementMode {
-	WALKING(1f, 8f, true, true, true, 3f, false),
-	CLIMBING(0f, 8f, true, true, true, 3f, false),
-	SWIMMING(0.05f, 1.5f, true, false, true, 2f, true),
-	DIVING(0f, 2f, true, false, true, 2f, true),
-	GHOSTING(0f, 4f, false, false, false, 5f, true),
-	FLYING(0f, 4f, true, false, false, 3f, true),
-	NONE(0f, 0f, false, false, false, 0f, true);
+    WALKING(1f, 8f, true, true, true, 3f, false),
+    CLIMBING(0f, 8f, true, true, true, 3f, false),
+    SWIMMING(0.05f, 1.5f, true, false, true, 2f, true),
+    DIVING(0f, 2f, true, false, true, 2f, true),
+    GHOSTING(0f, 4f, false, false, false, 5f, true),
+    FLYING(0f, 4f, true, false, false, 3f, true),
+    NONE(0f, 0f, false, false, false, 0f, true);
 
-	public float scaleGravity;
-	public float scaleInertia;
-	public boolean useCollision;
-	public boolean canBeGrounded;
-	public boolean respondToEnvironment;
-	public float maxSpeed;
-	public boolean applyInertiaToVertical;
-
-	public void updateEntity(EntityRef entity, Block block) {
-		switch (this){
-		case WALKING:
-			entity.send(new FootstepEvent());
-			break;
-		case DIVING:
-		case SWIMMING:
-			entity.send(new SwimStrokeEvent(block));
-			break;
-		default:
-			break;
-		}
-	}
+    public float scaleGravity;
+    public float scaleInertia;
+    public boolean useCollision;
+    public boolean canBeGrounded;
+    public boolean respondToEnvironment;
+    public float maxSpeed;
+    public boolean applyInertiaToVertical;
 
     private MovementMode(float scaleGravity, float scaleInertia, boolean useCollision, boolean canBeGrounded,
                          boolean respondToEnvironment, float maxSpeed, boolean applyInertiaToVertical) {
@@ -65,5 +46,4 @@ public enum MovementMode {
         this.maxSpeed = maxSpeed;
         this.applyInertiaToVertical = applyInertiaToVertical;
     }
-
 }

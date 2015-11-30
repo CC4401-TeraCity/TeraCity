@@ -78,22 +78,6 @@ public class TreeGeneratorLSystem extends AbstractTreeGenerator {
                 position, rotation, bark, leaf, 0);
     }
 
-    /**
-     * Recursively generates the tree following argument settings and recursion depth.
-     * 
-     * @param view
-     * @param rand
-     * @param posX
-     * @param posY
-     * @param posZ
-     * @param angleOffset
-     * @param axiomIterator
-     * @param position
-     * @param rotation
-     * @param bark
-     * @param leaf
-     * @param depth
-     */
     private void recurse(CoreChunk view, Random rand, int posX, int posY, int posZ, float angleOffset,
                          CharSequenceIterator axiomIterator, Vector3f position, Matrix4f rotation,
                          Block bark, Block leaf, int depth) {
@@ -103,8 +87,37 @@ public class TreeGeneratorLSystem extends AbstractTreeGenerator {
             switch (c) {
                 case 'G':
                 case 'F':
-                	generateLeaves(view, posX, posY, posZ, position, rotation,
-                			bark, leaf, depth);
+                    // Tree trunk
+
+                    safelySetBlock(view, posX + (int) position.x + 1, posY + (int) position.y, posZ + (int) position.z, bark);
+                    safelySetBlock(view, posX + (int) position.x - 1, posY + (int) position.y, posZ + (int) position.z, bark);
+                    safelySetBlock(view, posX + (int) position.x, posY + (int) position.y, posZ + (int) position.z + 1, bark);
+                    safelySetBlock(view, posX + (int) position.x, posY + (int) position.y, posZ + (int) position.z - 1, bark);
+
+                    // Generate leaves
+                    if (depth > 1) {
+                        int size = 1;
+
+                        for (int x = -size; x <= size; x++) {
+                            for (int y = -size; y <= size; y++) {
+                                for (int z = -size; z <= size; z++) {
+                                    if (Math.abs(x) == size && Math.abs(y) == size && Math.abs(z) == size) {
+                                        continue;
+                                    }
+
+                                    safelySetBlock(view, posX + (int) position.x + x + 1, posY + (int) position.y + y, posZ + z + (int) position.z, leaf);
+                                    safelySetBlock(view, posX + (int) position.x + x - 1, posY + (int) position.y + y, posZ + z + (int) position.z, leaf);
+                                    safelySetBlock(view, posX + (int) position.x + x, posY + (int) position.y + y, posZ + z + (int) position.z + 1, leaf);
+                                    safelySetBlock(view, posX + (int) position.x + x, posY + (int) position.y + y, posZ + z + (int) position.z - 1, leaf);
+                                }
+                            }
+                        }
+                    }
+
+                    Vector3f dir = new Vector3f(1f, 0f, 0f);
+                    rotation.transformVector(dir);
+
+                    position.add(dir);
                     break;
                 case '[':
                     recurse(view, rand, posX, posY, posZ, angleOffset, axiomIterator, new Vector3f(position), new Matrix4f(rotation), bark, leaf, depth);
@@ -156,72 +169,11 @@ public class TreeGeneratorLSystem extends AbstractTreeGenerator {
         }
     }
 
-	/**
-	 * Generates a leave on the tree being currently generated.
-	 * 
-	 * @param view
-	 * @param posX
-	 * @param posY
-	 * @param posZ
-	 * @param position
-	 * @param rotation
-	 * @param bark
-	 * @param leaf
-	 * @param depth
-	 */
-	private void generateLeaves(CoreChunk view, int posX, int posY, int posZ,
-			Vector3f position, Matrix4f rotation, Block bark, Block leaf,
-			int depth) {
-		// Tree trunk
-
-		safelySetBlock(view, posX + (int) position.x + 1, posY + (int) position.y, posZ + (int) position.z, bark);
-		safelySetBlock(view, posX + (int) position.x - 1, posY + (int) position.y, posZ + (int) position.z, bark);
-		safelySetBlock(view, posX + (int) position.x, posY + (int) position.y, posZ + (int) position.z + 1, bark);
-		safelySetBlock(view, posX + (int) position.x, posY + (int) position.y, posZ + (int) position.z - 1, bark);
-
-		// Generate leaves
-		if (depth > 1) {
-		    int size = 1;
-
-		    for (int x = -size; x <= size; x++) {
-		        for (int y = -size; y <= size; y++) {
-		            for (int z = -size; z <= size; z++) {
-		                if (Math.abs(x) == size && Math.abs(y) == size && Math.abs(z) == size) {
-		                    continue;
-		                }
-
-		                safelySetBlock(view, posX + (int) position.x + x + 1, posY + (int) position.y + y, posZ + z + (int) position.z, leaf);
-		                safelySetBlock(view, posX + (int) position.x + x - 1, posY + (int) position.y + y, posZ + z + (int) position.z, leaf);
-		                safelySetBlock(view, posX + (int) position.x + x, posY + (int) position.y + y, posZ + z + (int) position.z + 1, leaf);
-		                safelySetBlock(view, posX + (int) position.x + x, posY + (int) position.y + y, posZ + z + (int) position.z - 1, leaf);
-		            }
-		        }
-		    }
-		}
-
-		Vector3f dir = new Vector3f(1f, 0f, 0f);
-		rotation.transformVector(dir);
-
-		position.add(dir);
-	}
-
-	/**
-	 * Setter of the leafType.
-	 * 
-	 * @param b
-	 * @return
-	 */
     public TreeGeneratorLSystem setLeafType(BlockUri b) {
         leafType = b;
         return this;
     }
 
-    /**
-     * Setter of the BarkType.
-     * 
-     * @param b
-     * @return
-     */
     public TreeGeneratorLSystem setBarkType(BlockUri b) {
         barkType = b;
         return this;

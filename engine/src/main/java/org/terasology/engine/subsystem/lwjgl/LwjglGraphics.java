@@ -143,7 +143,7 @@ public class LwjglGraphics extends BaseLwjglSubsystem {
 
             RenderingConfig rc = config.getRendering();
             Display.setLocation(rc.getWindowPosX(), rc.getWindowPosY());
-            Display.setTitle("TeraCity");
+            Display.setTitle("Terasology" + " | " + "Pre Alpha");
             try {
 
                 String root = "org/terasology/icons/";

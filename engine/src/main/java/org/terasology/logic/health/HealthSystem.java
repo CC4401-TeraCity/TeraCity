@@ -50,9 +50,6 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
     @In
     private org.terasology.engine.Time time;
 
-    /*
-     * Updates health continuously, health regeneration is applied here
-     */
     public void update(float delta) {
         for (EntityRef entity : entityManager.getEntitiesWith(HealthComponent.class)) {
             HealthComponent health = entity.getComponent(HealthComponent.class);
@@ -76,17 +73,11 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
             }
         }
     }
-    
-    /*
-     * Calculates current health after healing
-     */
+
     private void checkHeal(EntityRef entity, int healAmount, EntityRef instigator) {
         checkHeal(entity, healAmount, instigator, null);
     }
-    
-    /*
-     * Calculates current health after healing (negative healing cause damage)
-     */
+
     private void checkHeal(EntityRef entity, int healAmount, EntityRef instigator, HealthComponent health) {
         BeforeHealEvent beforeHeal = entity.send(new BeforeHealEvent(healAmount, instigator));
         if (!beforeHeal.isConsumed()) {
@@ -98,10 +89,7 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
             }
         }
     }
-    
-    /*
-     * Increase current health not surpassing maxHealth
-     */
+
     public void doHeal(EntityRef entity, int healAmount, EntityRef instigator, HealthComponent targetHealthComponent) {
         HealthComponent health = targetHealthComponent;
         if (health == null) {
@@ -115,10 +103,7 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
             entity.send(new FullHealthEvent(instigator));
         }
     }
-    
-    /*
-     * Reduces current health, destroys the entity if health is less or equals than 0
-     */
+
     private void doDamage(EntityRef entity, int damageAmount, Prefab damageType, EntityRef instigator, EntityRef directCause, HealthComponent targetHealthComponent) {
         HealthComponent health = targetHealthComponent;
         if (health == null) {
@@ -134,17 +119,11 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
         }
     }
 
-    /*
-     * On damage event, calculates health after damage
-     */
     @ReceiveEvent(components = {HealthComponent.class})
     public void onDamage(DoDamageEvent event, EntityRef entity) {
         checkDamage(entity, event.getAmount(), event.getDamageType(), event.getInstigator(), event.getDirectCause(), null);
     }
 
-    /*
-     * Get damage amount and calculates current health after damage (negative damage heals the entity)
-     */
     private void checkDamage(EntityRef entity, int amount, Prefab damageType, EntityRef instigator, EntityRef directCause, HealthComponent health) {
         BeforeDamagedEvent beforeDamage = entity.send(new BeforeDamagedEvent(amount, damageType, instigator, directCause));
         if (!beforeDamage.isConsumed()) {
@@ -157,9 +136,6 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
         }
     }
 
-    /*
-     * Destroy the entity if it doesn't have health
-     */
     @ReceiveEvent
     public void onDestroy(DestroyEvent event, EntityRef entity, HealthComponent healthComponent) {
         BeforeDestroyEvent destroyCheck = new BeforeDestroyEvent(event.getInstigator(), event.getDirectCause(), event.getDamageType());
@@ -172,9 +148,6 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
         }
     }
 
-    /*
-     * Calculates the healing amount
-     */
     private int calculateTotal(int base, TFloatList multipliers, TIntList modifiers) {
         // For now, add all modifiers and multiply by all multipliers. Negative modifiers cap to zero, but negative
         // multipliers remain (so damage can be flipped to healing)
@@ -195,18 +168,13 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
         return TeraMath.floorToInt(total);
 
     }
-    /*
-     * Heals in case of heal event
-     */
+
     @ReceiveEvent(components = {HealthComponent.class})
     public void onHeal(DoHealEvent event, EntityRef entity) {
         checkHeal(entity, event.getAmount(), event.getInstigator());
     }
 
     // TODO: This should be in a separate system
-    /*
-     * Damage if falling too fast
-     */
     @ReceiveEvent(components = {HealthComponent.class})
     public void onLand(VerticalCollisionEvent event, EntityRef entity) {
         HealthComponent health = entity.getComponent(HealthComponent.class);
@@ -218,10 +186,7 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
             }
         }
     }
-    
-    /*
-     * Damage the entity if it crashes.
-     */
+
     @ReceiveEvent(components = {HealthComponent.class})
     public void onCrash(HorizontalCollisionEvent event, EntityRef entity) {
         HealthComponent health = entity.getComponent(HealthComponent.class);
@@ -236,5 +201,62 @@ public class HealthSystem extends BaseComponentSystem implements UpdateSubscribe
                 checkDamage(entity, damage, EngineDamageTypes.PHYSICAL.get(), EntityRef.NULL, EntityRef.NULL, health);
             }
         }
+    }
+
+    // Debug commands
+    @Command(shortDescription = "Reduce the player's health by an amount", runOnServer = true)
+    public String damage(@Sender EntityRef client, @CommandParam("amount") int amount) {
+        ClientComponent clientComp = client.getComponent(ClientComponent.class);
+        clientComp.character.send(new DoDamageEvent(amount, EngineDamageTypes.DIRECT.get(), clientComp.character));
+
+        return "Inflicted damage of " + amount;
+    }
+
+    @Command(shortDescription = "Restores your health to max", runOnServer = true,
+            requiredPermission = PermissionManager.CHEAT_PERMISSION)
+    public String healthMax(@Sender EntityRef clientEntity) {
+        ClientComponent clientComp = clientEntity.getComponent(ClientComponent.class);
+        clientComp.character.send(new DoHealEvent(100000, clientComp.character));
+        return "Health restored";
+    }
+
+    @Command(shortDescription = "Restores your health by an amount", runOnServer = true,
+            requiredPermission = PermissionManager.CHEAT_PERMISSION)
+    public void health(@Sender EntityRef client, @CommandParam("amount") int amount) {
+        ClientComponent clientComp = client.getComponent(ClientComponent.class);
+        clientComp.character.send(new DoHealEvent(amount, clientComp.character));
+    }
+
+    @Command(shortDescription = "Set max health", runOnServer = true,
+            requiredPermission = PermissionManager.CHEAT_PERMISSION)
+    public String setMaxHealth(@Sender EntityRef client, @CommandParam("max") int max) {
+        ClientComponent clientComp = client.getComponent(ClientComponent.class);
+        HealthComponent health = clientComp.character.getComponent(HealthComponent.class);
+        if (health != null) {
+            doHeal(clientComp.character, health.maxHealth, clientComp.character, health);
+        }
+        return "Max health set to " + max;
+    }
+
+    @Command(shortDescription = "Set health regen rate", runOnServer = true,
+            requiredPermission = PermissionManager.CHEAT_PERMISSION)
+    public String setRegenRate(@Sender EntityRef client, @CommandParam("rate") float rate) {
+        ClientComponent clientComp = client.getComponent(ClientComponent.class);
+        HealthComponent health = clientComp.character.getComponent(HealthComponent.class);
+        if (health != null) {
+            health.regenRate = rate;
+            clientComp.character.saveComponent(health);
+        }
+        return "Set health regeneration rate to " + rate;
+    }
+
+    @Command(shortDescription = "Show your health")
+    public String showHealth(@Sender EntityRef client) {
+        ClientComponent clientComp = client.getComponent(ClientComponent.class);
+        HealthComponent health = clientComp.character.getComponent(HealthComponent.class);
+        if (health != null) {
+            return "Your health:" + health.currentHealth + " max:" + health.maxHealth + " regen:" + health.regenRate;
+        }
+        return "I guess you're dead?";
     }
 }

@@ -65,21 +65,12 @@ public class ChatSystem extends BaseComponentSystem {
     private NUIManager nuiManager;
 
     private MiniChatOverlay overlay;
-    private boolean unique;
-    private EntityRef targetClient;
 
-    /*
-     * (non-Javadoc)
-     * @see org.terasology.entitySystem.systems.BaseComponentSystem#initialise()
-     */
     @Override
     public void initialise() {
         overlay = nuiManager.addOverlay(MINICHAT_UI, MiniChatOverlay.class);
     }
-    
-    /*
-     * Open Chat when chat button is pressed
-     */
+
     @ReceiveEvent(components = ClientComponent.class)
     public void onToggleChat(ChatButton event, EntityRef entity) {
         if (event.getState() == ButtonState.DOWN) {
@@ -89,9 +80,6 @@ public class ChatSystem extends BaseComponentSystem {
         }
     }
 
-    /*
-     * Show new message, if chat and console are hidden show overlay.
-     */
     @ReceiveEvent(components = ClientComponent.class)
     public void onMessage(MessageEvent event, EntityRef entity) {
         ClientComponent client = entity.getComponent(ClientComponent.class);
@@ -107,9 +95,6 @@ public class ChatSystem extends BaseComponentSystem {
         }
     }
 
-    /*
-     * Command to send a message to all other players
-     */
     @Command(runOnServer = true,
             requiredPermission = PermissionManager.CHAT_PERMISSION,
             shortDescription = "Sends a message to all other players")
@@ -126,9 +111,6 @@ public class ChatSystem extends BaseComponentSystem {
         return "Message sent.";
     }
 
-    /*
-     * Command to send a private message to another player
-     */
     @Command(runOnServer = true,
             requiredPermission = PermissionManager.CHAT_PERMISSION,
             shortDescription = "Sends a private message to a specified user")
@@ -138,27 +120,8 @@ public class ChatSystem extends BaseComponentSystem {
             @CommandParam("message") String message
     ) {
         Iterable<EntityRef> clients = entityManager.getEntitiesWith(ClientComponent.class);
-        setTargetClient(username, clients);
-       
-        String errorMessage;
-        if ((errorMessage = FoundUniqueTargetClient(username, clients))!=null){
-        	return errorMessage;
-        }
-
-        if (targetClient == null) {
-            return FontColor.getColored("User with name '" + username + "' not found.", ConsoleColors.ERROR);
-        }
-
-        return sendMessage(sender,message);
-    }
-
-    /*
-     * Set target player of the whisper by looking its username
-     */
-	private void setTargetClient(String username,
-			Iterable<EntityRef> clients) {
-        targetClient = null;
-		unique = true;
+        EntityRef targetClient = null;
+        boolean unique = true;
 
         for (EntityRef client : clients) {
             ClientComponent clientComponent = client.getComponent(ClientComponent.class);
@@ -177,17 +140,8 @@ public class ChatSystem extends BaseComponentSystem {
                 }
             }
         }
-	}
-	
-	/*
-	 * If the targeted player was not unique, it looks for it one more time,
-	 * in case of not unique again, return an Error Message
-	 * If It didn't exist, returns an Error Message
-	 * If all was OK, returns null;
-	 */
-	private String FoundUniqueTargetClient(String username,
-			Iterable<EntityRef> clients) {
-		if (!unique) {
+
+        if (!unique) {
             targetClient = null;
 
             for (EntityRef client : clients) {
@@ -211,13 +165,8 @@ public class ChatSystem extends BaseComponentSystem {
         if (targetClient == null) {
             return FontColor.getColored("User with name '" + username + "' not found.", ConsoleColors.ERROR);
         }
-        return null;
-	}
-	/*
-	 * Send message to the player and returns it and who send it to who.
-	 */
-	private String sendMessage(EntityRef sender, String message){
-		ClientComponent senderClientComponent = sender.getComponent(ClientComponent.class);
+
+        ClientComponent senderClientComponent = sender.getComponent(ClientComponent.class);
         DisplayNameComponent senderDisplayNameComponent = senderClientComponent.clientInfo.getComponent(DisplayNameComponent.class);
         ClientComponent targetClientComponent = targetClient.getComponent(ClientComponent.class);
         DisplayNameComponent targetDisplayNameComponent = targetClientComponent.clientInfo.getComponent(DisplayNameComponent.class);
@@ -229,5 +178,5 @@ public class ChatSystem extends BaseComponentSystem {
         targetClient.send(new ChatMessageEvent(targetMessage, senderClientComponent.clientInfo));
 
         return senderMessage;
-	}
+    }
 }

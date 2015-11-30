@@ -107,14 +107,11 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
     private BlockOverlayRenderer aabbRenderer = new AABBRenderer(AABB.createEmpty());
 
     private int inputSequenceNumber = 1;
-    
+
     public void setPlayerCamera(Camera camera) {
         playerCamera = camera;
     }
-    
-    /*
-     * Updates player components such as movement, player location and camera location
-     */
+
     @Override
     public void update(float delta) {
         if (!localPlayer.isValid()) {
@@ -135,10 +132,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
 
         entity.saveComponent(characterComp);
     }
-    
-    /*
-     * Do the math to update character movement
-     */
+
     private void processInput(EntityRef entity, CharacterComponent characterComponent, CharacterMovementComponent characterMovementComponent) {
         Vector3f relMove = new Vector3f(relativeMovement);
         relMove.y = 0;
@@ -147,53 +141,42 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         switch (characterMovementComponent.mode) {
             case WALKING:
                 viewRot = new Quat4f(TeraMath.DEG_TO_RAD * characterComponent.yaw, 0, 0);
-                viewRot.rotate(relMove,relMove);
+                QuaternionUtil.quatRotate(viewRot, relMove, relMove);
                 break;
             case CLIMBING:
                 // Rotation is applied in KinematicCharacterMover
                 break;
             default:
                 viewRot = new Quat4f(TeraMath.DEG_TO_RAD * characterComponent.yaw, TeraMath.DEG_TO_RAD * characterComponent.pitch, 0);
-                viewRot.rotate(relMove,relMove);
+                QuaternionUtil.quatRotate(viewRot, relMove, relMove);
                 relMove.y += relativeMovement.y;
                 break;
         }
         entity.send(new CharacterMoveInputEvent(inputSequenceNumber++, lookPitch, lookYaw, relMove, run, jump));
         jump = false;
     }
-    /*
-     * Updates camera location
-     */
+
     private void updateCamera(CharacterComponent characterComponent, CharacterMovementComponent characterMovementComponent,
                               CharacterComponent characterComp, LocationComponent location) {
         // TODO: Remove, use component camera, breaks spawn camera anyway
         Quat4f lookRotation = new Quat4f(TeraMath.DEG_TO_RAD * characterComponent.yaw, TeraMath.DEG_TO_RAD * characterComponent.pitch, 0);
         updateCamera(characterComp, characterMovementComponent, location.getWorldPosition(), lookRotation);
     }
-    
-    /*
-     * Change vision of the player when it moves Mouse horizontally 
-     */
+
     @ReceiveEvent(components = CharacterComponent.class)
     public void onMouseX(MouseXAxisEvent event, EntityRef entity) {
         CharacterComponent characterComponent = entity.getComponent(CharacterComponent.class);
         lookYaw = (characterComponent.yaw - event.getValue()) % 360;
         event.consume();
     }
-    
-    /*
-     * Change vision of the player when it moves Mouse vertically.
-     */
+
     @ReceiveEvent(components = CharacterComponent.class)
     public void onMouseY(MouseYAxisEvent event, EntityRef entity) {
         CharacterComponent character = entity.getComponent(CharacterComponent.class);
         lookPitch = TeraMath.clamp(character.pitch + event.getValue(), -89, 89);
         event.consume();
     }
-    
-    /*
-     * Change state to jump true if the jump button is pressed.
-     */
+
     @ReceiveEvent(components = {CharacterComponent.class, CharacterMovementComponent.class})
     public void onJump(JumpButton event, EntityRef entity) {
         if (event.getState() == ButtonState.DOWN) {
@@ -204,36 +187,24 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         }
     }
 
-    /*
-     * Updates movement when forward button is pressed
-     */
     @ReceiveEvent(components = {ClientComponent.class})
     public void updateForwardsMovement(ForwardsMovementAxis event, EntityRef entity) {
         relativeMovement.z = event.getValue();
         event.consume();
     }
 
-    /*
-     * Update strafe movement on event
-     */
     @ReceiveEvent(components = {ClientComponent.class})
     public void updateStrafeMovement(StrafeMovementAxis event, EntityRef entity) {
         relativeMovement.x = event.getValue();
         event.consume();
     }
 
-    /*
-     * Updates vertical movement on event
-     */
     @ReceiveEvent(components = {ClientComponent.class})
     public void updateVerticalMovement(VerticalMovementAxis event, EntityRef entity) {
         relativeMovement.y = event.getValue();
         event.consume();
     }
 
-    /*
-     * Change speed temporarily while configured button is pressed
-     */
     @ReceiveEvent(components = {ClientComponent.class}, priority = EventPriority.PRIORITY_NORMAL)
     public void onToggleSpeedTemporarily(ToggleSpeedTemporarilyButton event, EntityRef entity) {
         boolean toggle = event.isDown();
@@ -242,9 +213,6 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         event.consume();
     }
 
-    /*
-     * Change speed permanently if button is pressed
-     */
     @ReceiveEvent(components = {ClientComponent.class}, priority = EventPriority.PRIORITY_NORMAL)
     public void onToggleSpeedPermanently(ToggleSpeedPermanentlyButton event, EntityRef entity) {
         if (event.isDown()) {
@@ -253,11 +221,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         }
         event.consume();
     }
-    
-    /*
-     * (non-Javadoc)
-     * @see org.terasology.entitySystem.systems.RenderSystem#renderOverlay()
-     */
+
     @Override
     public void renderOverlay() {
         // TODO: Don't render if not in first person?
@@ -285,24 +249,16 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
             }
         }
     }
-    
-    /*
-     * Set Renderer
-     */
+
     public void setAABBRenderer(BlockOverlayRenderer newAABBRender) {
         aabbRenderer = newAABBRender;
     }
-    
-    /*
-     * Get Renderer
-     */
+
     public BlockOverlayRenderer getAABBRenderer() {
         return aabbRenderer;
     }
 
-    /*
-     * Updates camera location depending on player position
-     */
+
     private void updateCamera(CharacterComponent characterComponent, CharacterMovementComponent charMovementComp, Vector3f position, Quat4f rotation) {
         // The camera position is the player's position plus the eye offset
         Vector3f cameraPosition = new Vector3f(position);
@@ -310,7 +266,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
 
         playerCamera.getPosition().set(cameraPosition);
         Vector3f viewDir = Direction.FORWARD.getVector3f();
-        rotation.rotate(viewDir, playerCamera.getViewingDirection());
+        QuaternionUtil.quatRotate(rotation, viewDir, playerCamera.getViewingDirection());
 
         float stepDelta = charMovementComp.footstepDelta - lastStepDelta;
         if (stepDelta < 0) {
@@ -336,9 +292,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         }
     }
 
-    /*
-     * Use targeted object
-     */
+
     @ReceiveEvent(components = {CharacterComponent.class})
     public void onFrobButton(FrobButton event, EntityRef character) {
         if (event.getState() != ButtonState.DOWN) {
@@ -356,9 +310,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         }
     }
 
-    /*
-     * Use held item (Default Right Click)
-     */
+
     @ReceiveEvent(components = {CharacterComponent.class, InventoryComponent.class})
     public void onUseItemButton(UseItemButton event, EntityRef entity, CharacterComponent characterComponent) {
         if (!event.isDown() || time.getGameTimeInMs() - lastItemUse < 200) {
@@ -378,9 +330,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         event.consume();
     }
 
-    /*
-     * Returns bobbing offset
-     */
+
     private float calcBobbingOffset(float phaseOffset, float amplitude, float frequency) {
         return (float) java.lang.Math.sin(bobFactor * frequency + phaseOffset) * amplitude;
     }
