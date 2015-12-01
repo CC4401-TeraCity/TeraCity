@@ -13,8 +13,7 @@ public class MockColoring extends AbstractColoring {
 	String metricType;
 
 	@Override
-	public IColoringMetric getMetric(String path) {
-		
+	public IColoringMetric calculateMetric(String path) {
 		if (metricType == "random") {
 			return new RateColoringMetric(
 					new Random().nextDouble());
@@ -26,6 +25,7 @@ public class MockColoring extends AbstractColoring {
 		// invalid option!
 		return new NullColoringMetric();
 	}
+	
 	
 	@Override
 	public void getDataColoring(){

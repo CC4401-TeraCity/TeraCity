@@ -2,6 +2,7 @@ package coloring;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 import org.terasology.codecity.world.map.CodeMap;
@@ -28,6 +29,7 @@ public abstract class AbstractColoring implements IColoring, Runnable {
 	
 	protected String[] params;
 	private String faceToPaint = FaceToPaint.ALL.toString();	
+	private Map<String, IColoringMetric> metrics;
 	
 	public void setFaceToPaint(String face) {
 		this.faceToPaint = face;
@@ -77,7 +79,17 @@ public abstract class AbstractColoring implements IColoring, Runnable {
 	}
 
 	@Override
-	public abstract IColoringMetric getMetric(String path);
+	public IColoringMetric getMetric(String path) {
+		return metrics.get(path);
+	}
+	
+	@Override
+	public void storeMetric(String path) {
+		this.metrics.put(path, calculateMetric(path));
+	}
+	
+	@Override
+	public abstract IColoringMetric calculateMetric(String path);
 	
 	@Override
 	public abstract void getDataColoring()  throws IOException;
@@ -113,4 +125,5 @@ public abstract class AbstractColoring implements IColoring, Runnable {
 	    });
 	    executor.shutdown();
 	}
+
 }

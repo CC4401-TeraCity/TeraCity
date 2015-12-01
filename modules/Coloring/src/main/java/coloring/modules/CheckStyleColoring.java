@@ -29,7 +29,7 @@ public class CheckStyleColoring extends AbstractColoring {
 	}
 
 	@Override
-	public IColoringMetric getMetric(String path) {
+	public IColoringMetric calculateMetric(String path) {
 		
 		DataColour item = datamap.get(path);
 		double nProblems;
