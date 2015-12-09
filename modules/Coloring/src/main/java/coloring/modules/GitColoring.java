@@ -17,7 +17,7 @@ public class GitColoring extends AbstractColoring {
 	GitMetric metricType;
 
 	@Override
-	public IColoringMetric calculateMetric(String path) {
+	public IColoringMetric getMetric(String path) {
 		
 		Integer problems = data.get(path);
 		if (problems == null) { return new NullColoringMetric(); }

@@ -17,7 +17,7 @@ public class CoberturaColoring extends AbstractColoring {
 	}
 	
 	@Override
-	public IColoringMetric calculateMetric(String path) {
+	public IColoringMetric getMetric(String path) {
 		
 		double rate =  CoberturaCommand.getMetricValue(path);
 		if (rate < 0) {

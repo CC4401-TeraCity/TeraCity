@@ -20,7 +20,7 @@ public class PMDColoring extends AbstractColoring {
 
 
 	@Override
-	public IColoringMetric calculateMetric(String path) {
+	public IColoringMetric getMetric(String path) {
 		
 		Integer warningCount = warningCounterMap.get(path);
 		

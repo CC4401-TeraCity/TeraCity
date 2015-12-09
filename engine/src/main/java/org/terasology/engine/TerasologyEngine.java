@@ -70,6 +70,7 @@ import org.terasology.utilities.concurrency.ShutdownTask;
 import org.terasology.utilities.concurrency.Task;
 import org.terasology.utilities.concurrency.TaskMaster;
 import org.terasology.version.TerasologyVersion;
+import org.terasology.world.WorldProvider;
 import org.terasology.world.block.shapes.BlockShape;
 import org.terasology.world.block.shapes.BlockShapeData;
 import org.terasology.world.block.shapes.BlockShapeImpl;
@@ -77,6 +78,7 @@ import org.terasology.world.generator.internal.WorldGeneratorManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
@@ -168,6 +170,8 @@ public class TerasologyEngine implements GameEngine {
             SplashScreen.getInstance().post("Post-initialize subsystems ...");
 
             postInitSubsystems();
+            
+            calculateMetrics();
 
             verifyRequiredSystemIsRegistered(DisplayDevice.class);
             verifyRequiredSystemIsRegistered(RenderingSubsystemFactory.class);
@@ -192,7 +196,17 @@ public class TerasologyEngine implements GameEngine {
         logger.info("Initialization completed in {}sec.", String.format("%.2f", seconds));
     }
 
-    /**
+	private void calculateMetrics() {
+		WorldProvider world = CoreRegistry.get(WorldProvider.class);
+        if (world != null) {
+        	CodeMap map = CoreRegistry.get(CodeMap.class);
+        	CodeScale scale = new SquareRootCodeScale();
+        	ArrayList<String> paths = getPathInfo(map, scale);
+        }
+        throw new IllegalArgumentException("Sorry, something went wrong!");
+	}
+
+	/**
      * Logs software, environment and hardware information.
      */
     private void logEnvironmentInfo() {

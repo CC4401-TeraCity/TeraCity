@@ -2,8 +2,9 @@ package coloring;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.Executors;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import org.terasology.codecity.world.map.CodeMap;
 import org.terasology.codecity.world.map.CodeMapFactory;
@@ -28,8 +29,7 @@ import coloring.commands.PlaceBlockCommand;
 public abstract class AbstractColoring implements IColoring, Runnable {
 	
 	protected String[] params;
-	private String faceToPaint = FaceToPaint.ALL.toString();	
-	private Map<String, IColoringMetric> metrics;
+	private String faceToPaint = FaceToPaint.ALL.toString();
 	
 	public void setFaceToPaint(String face) {
 		this.faceToPaint = face;
@@ -44,7 +44,7 @@ public abstract class AbstractColoring implements IColoring, Runnable {
         }
         throw new IllegalArgumentException("Sorry, something went wrong!");
 	}
-	public ArrayList <String> getPathInfo(CodeMap map, CodeScale scale){
+	public ArrayList <String> getPathInfo(CodeMap map, CodeScale scale) {
 		CodeMapFactory factory = new CodeMapFactory(scale);
 		ArrayList<String> result = new ArrayList<String>();
 		for (MapObject obj: map.getMapObjects()){
@@ -68,31 +68,49 @@ public abstract class AbstractColoring implements IColoring, Runnable {
 		ArrayList<String> paths = getClassPaths();
 		PlaceBlockCommand pbc = new PlaceBlockCommand();
 		for (String path : paths) {
-			IColoringMetric classMetric = getMetric(path); 
+			String[] classMetricData = getMetricData(path); 
 			int maxHealth = 10;
-			int damage = (int)((maxHealth - 1)*(1.0 - classMetric.getValue()));
+			int damage = (int)((maxHealth - 1)*(1.0 - Double.valueOf(classMetricData[0])));
 			damage = Math.min((maxHealth-1), damage);
 			
-			pbc.ColorBuildCommon(path, classMetric.getColor(), faceToPaint, damage, maxHealth);
+			pbc.ColorBuildCommon(path, classMetricData[1], faceToPaint, damage, maxHealth);
 		}
 		ColoringCommands.STATE = "Awaiting analisys";
 	}
 
 	@Override
-	public IColoringMetric getMetric(String path) {
-		return metrics.get(path);
+	public String[] getMetricData(String path) {
+
+		try {				
+			BufferedReader buffer = null;
+			String currentLine = "";
+			String csvSplitBy = ",";
+			String className = this.getClass().getSimpleName();
+			buffer = new BufferedReader(new FileReader(className + ".csv"));
+			
+			String[] data = new String[2];
+			while ((currentLine = buffer.readLine()) != null) {
+				String[] pathMetric = currentLine.split(csvSplitBy);
+				if (pathMetric[0] == path) {
+					data[0] = pathMetric[1];
+					data[1] = pathMetric[2];
+					break;
+				}
+			}
+			buffer.close();
+			return data;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	@Override
-	public void storeMetric(String path) {
-		this.metrics.put(path, calculateMetric(path));
-	}
+	public abstract IColoringMetric getMetric(String path);
 	
 	@Override
-	public abstract IColoringMetric calculateMetric(String path);
-	
-	@Override
-	public abstract void getDataColoring()  throws IOException;
+	public abstract void getDataColoring() throws IOException;
 	
 	@Override
 	public void run() {

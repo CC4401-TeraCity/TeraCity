@@ -15,9 +15,7 @@ public interface IColoring{
 	public void execute(String[] params);
 	
 	public void setFaceToPaint(String face);
-
-	IColoringMetric calculateMetric(String path);
-
-	void storeMetric(String path);
+	
+	String[] getMetricData(String path);
 	
 }
